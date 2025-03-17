@@ -1,0 +1,27 @@
+A. Bronze layer functional information.
+Analysing: Interview Source System Experts.
+
+A.1 Business Context & Ownership
+	Who owns the data?
+	What business Process it supports?
+	System & data documentation.
+	Data model & data catalog.
+A.2 Architecture & Technology Stack
+	How is data stored?
+	(SQL Server, Oracle, AWS, Azure, ...)
+	What are the integration capabilities?
+	(API, Kafka, File extraction, Direct DB).
+A.3 Extract & Load
+	Incremental vs full loads?
+	Data scope & history needs?
+	What is the expected size of the extract?
+	Are there any data volumes limitatios?
+	How to avoid impacting the source system's performance?
+	Authentication & authorization.
+	(Tokens, SSH Keys, VPN, IP White listing, ...). 
+
+B. Coding: Data Integration.
+
+C. Validating: Data completeness & Schema Checks.
+
+D. Docs & Version: Data Documentation & Versioning in GIT.
