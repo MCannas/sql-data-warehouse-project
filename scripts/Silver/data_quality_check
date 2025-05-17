@@ -175,9 +175,9 @@ SELECT
      ,TRIM(cst_lastname) AS cst_lastname
      ,cst_material_status
      ,TRIM(cst_gndr) AS cst_gndr
-	 ,CASE WHEN cst_gndr = 'F' THEN 'Female'
+     ,CASE WHEN cst_gndr = 'F' THEN 'Female'
            WHEN cst_gndr = 'M' THEN 'Male'
-
+      END
      ,cst_create_date
 FROM (
 SELECT
