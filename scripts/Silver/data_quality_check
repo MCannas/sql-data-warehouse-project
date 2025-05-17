@@ -1,3 +1,8 @@
+use master;
+--GO;
+USE DataWarehouse;
+--GO;
+
 --Check For Nulls or Duplicates in the Primary Key
 --Expectation: No Result 
 SELECT * FROM bronze.crm_cust_info
@@ -45,3 +50,141 @@ SELECT
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
 FROM bronze.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
+
+--Check For Nulls or Duplicates in the Primary Key
+--Expectation: No Result 
+SELECT * FROM bronze.crm_cust_info
+
+SELECT *
+FROM bronze.crm_cust_info
+WHERE cst_id = 29466;
+
+SELECT cst_id, count(*)
+FROM bronze.crm_cust_info
+GROUP BY cst_id
+HAVING COUNT(*) > 1 OR cst_id IS NULL;
+
+--Use: ROW_NUMBER()
+--Assigns a unique number to each row in a result set, based on a defined order.
+
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+WHERE cst_id = 29466;
+
+-- Also Without a WHERE Clause
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+
+--With Only the InCorrect Row(s) Returned.
+SELECT
+*
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last != 1;
+
+--With Only the Correct Row(s) Returned.
+SELECT
+*
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last = 1; -- AND cst_id = 29466
+
+-- Quality Check
+--Check for unwanted Spaces in String Values
+--Expectation: No Result
+
+--Without a Filter
+--Check first Name
+SELECT cst_firstname FROM bronze.crm_cust_info
+
+--Remove the unwanted Spaces at Query
+--TRIM command to remove the leading & ending spaces of a String value.
+--If the original value is not equal to the same value after trimming, it means there are spaces!
+SELECT cst_firstname FROM bronze.crm_cust_info
+WHERE cst_firstname != TRIM(cst_firstname)
+
+--Sum the Values with Spaces.
+SELECT count(cst_firstname) FROM bronze.crm_cust_info
+WHERE cst_firstname != TRIM(cst_firstname)
+
+--Check last Name
+SELECT cst_lastname FROM bronze.crm_cust_info
+WHERE cst_lastname != TRIM(cst_lastname)
+
+--Check the Gender
+SELECT cst_gndr FROM bronze.crm_cust_info
+WHERE cst_gndr!= TRIM(cst_gndr)
+
+-- Quality Check
+-- Check for unwanted spaces in string values and remove those spaces.
+SELECT
+   *  
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last = 1; -- AND cst_id = 29466;
+
+
+--Clean All the Columns with a Value Space Error
+--With Only the Correct Row(s) Returned.
+SELECT
+	  cst_id
+     ,cst_key
+     ,TRIM(cst_firstname) AS cst_firstname
+     ,TRIM(cst_lastname) AS cst_lastname
+     ,cst_material_status
+     ,TRIM(cst_gndr) AS cst_gndr
+     ,cst_create_date
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last = 1; -- AND cst_id = 29466
+
+-- Quality Check
+-- Check the consistency of values in low cardinality columns.
+
+-- Quality Check
+-- Check the consistency of values in low cardinality columns.
+
+-- Data Standardization & Consistency.
+
+SELECT DISTINCT cst_gndr
+FROM bronze.crm_cust_info
+
+-- In our data warehouse, we aim to store clear and meaningful 
+-- values rather than using abbreviated terms.
+
+SELECT
+	  cst_id
+     ,cst_key
+     ,TRIM(cst_firstname) AS cst_firstname
+     ,TRIM(cst_lastname) AS cst_lastname
+     ,cst_material_status
+     ,TRIM(cst_gndr) AS cst_gndr
+	 ,CASE WHEN cst_gndr = 'F' THEN 'Female'
+           WHEN cst_gndr = 'M' THEN 'Male'
+
+     ,cst_create_date
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last = 1; -- AND cst_id = 29466
+
+-- In our data warehouse we use the default value 'n/a'
+-- for missing values!
