@@ -172,8 +172,17 @@ FROM bronze.crm_cust_info
 -- Apply TRIM to remove unwanted empty spaces just in case spaces appear later in your column.
 
 
-
-
+-- Write the insert statement to transfer the data to the silver layer.
+INSERT INTO silver.crm_cust_info
+(
+	cst_id,
+	cst_key,
+	cst_firstname,
+	cst_lastname,
+	cst_marital_status,
+	cst_gndr,
+	cst_create_date
+)
 SELECT
 	  cst_id
      ,cst_key
