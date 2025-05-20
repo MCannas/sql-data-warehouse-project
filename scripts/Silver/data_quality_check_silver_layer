@@ -10,14 +10,14 @@ USE DataWarehouse;
 
 --Check For Nulls or Duplicates in the Primary Key
 --Expectation: No Result 
-SELECT * FROM bronze.crm_cust_info
+SELECT * FROM silver.crm_cust_info
 
 SELECT *
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 WHERE cst_id = 29449;
 
 SELECT cst_id, count(*)
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 GROUP BY cst_id
 HAVING COUNT(*) > 1 OR cst_id IS NULL;
 
@@ -27,14 +27,14 @@ HAVING COUNT(*) > 1 OR cst_id IS NULL;
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 WHERE cst_id = 29466;
 
 -- Also Without a WHERE Clause
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 
 --With Only the InCorrect Row(s) Returned.
 SELECT
@@ -43,7 +43,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last != 1;
 
 --With Only the Correct Row(s) Returned.
@@ -53,19 +53,19 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
 
 --Check For Nulls or Duplicates in the Primary Key
 --Expectation: No Result 
-SELECT * FROM bronze.crm_cust_info
+SELECT * FROM silver.crm_cust_info
 
 SELECT *
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 WHERE cst_id = 29466;
 
 SELECT cst_id, count(*)
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 GROUP BY cst_id
 HAVING COUNT(*) > 1 OR cst_id IS NULL;
 
@@ -75,14 +75,14 @@ HAVING COUNT(*) > 1 OR cst_id IS NULL;
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 WHERE cst_id = 29466;
 
 -- Also Without a WHERE Clause
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 
 --With Only the InCorrect Row(s) Returned.
 SELECT
@@ -91,7 +91,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last != 1;
 
 --With Only the Correct Row(s) Returned.
@@ -101,7 +101,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
 
 -- Quality Check
@@ -110,24 +110,24 @@ FROM bronze.crm_cust_info
 
 --Without a Filter
 --Check first Name
-SELECT cst_firstname FROM bronze.crm_cust_info
+SELECT cst_firstname FROM silver.crm_cust_info
 
 --Remove the unwanted Spaces at Query
 --TRIM command to remove the leading & ending spaces of a String value.
 --If the original value is not equal to the same value after trimming, it means there are spaces!
-SELECT cst_firstname FROM bronze.crm_cust_info
+SELECT cst_firstname FROM silver.crm_cust_info
 WHERE cst_firstname != TRIM(cst_firstname)
 
 --Sum the Values with Spaces.
-SELECT count(cst_firstname) FROM bronze.crm_cust_info
+SELECT count(cst_firstname) FROM silver.crm_cust_info
 WHERE cst_firstname != TRIM(cst_firstname)
 
 --Check last Name
-SELECT cst_lastname FROM bronze.crm_cust_info
+SELECT cst_lastname FROM silver.crm_cust_info
 WHERE cst_lastname != TRIM(cst_lastname)
 
 --Check the Gender
-SELECT cst_gndr FROM bronze.crm_cust_info
+SELECT cst_gndr FROM silver.crm_cust_info
 WHERE cst_gndr!= TRIM(cst_gndr)
 
 -- Quality Check
@@ -138,7 +138,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466;
 
 
@@ -156,7 +156,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
 
 -- Quality Check
@@ -168,7 +168,7 @@ FROM bronze.crm_cust_info
 -- Data Standardization & Consistency.
 
 SELECT DISTINCT cst_gndr
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 
 -- Transform the data output
 -- In our data warehouse, we aim to store clear and meaningful values rather than using abbreviated terms.
@@ -206,6 +206,6 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM bronze.crm_cust_info
+FROM silver.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
 
