@@ -1,72 +1,331 @@
+--Check For Nulls or Duplicates in the Primary Key
+--Expectation: No Result
+
 use master;
 --GO;
 USE DataWarehouse;
 --GO;
 
--- Remove Unwanted spaces
--- Removes unnecessary spaces to ensure data consistency, and uniformity accross all records.
--- Example TRIM()
+SELECT * FROM bronze.crm_prd_info
 
--- Data Normalization & Standardization
--- Maps coded values to meaningful, user-friendly descriptions. 
--- Example CASE-statement
--- CASE WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
---           WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Maried'
---	  ELSE 'n/a'
---	  END cst_marital_status
-
--- Handling Missing Data
--- Fills in the blanks by adding a default value.
--- Example CASE-statement
---	  ELSE 'n/a'
-
--- Remove Duplicates
--- Ensure only one record per entity by identifying and retaining the most relevant row.
--- Example
--- FROM (
--- SELECT
--- *,
--- ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
--- FROM silver.crm_cust_info
--- WHERE cst_id IS NULL;  -- Still one row with NULL !
--- WHERE cst_id IS NOT NULL;
-
--- Data filtering
--- Only the necessary row need to be transformed.
--- Example
--- WHERE flag_last = 1;
+SELECT prd_id, count(*)
+FROM bronze.crm_prd_info
+GROUP BY prd_id
+HAVING COUNT(*) > 1 OR prd_id IS NULL;
 
 
+-- Extract the product key into different categories.
+-- SUBSTRING()
+-- Extracts a specific part of a string value.
+-- First the cat_id from the first 5 characters.
 
--- Silver Layzer Table Check: crm_cust_info
+SELECT prd_key, SUBSTRING(prd_key,1,5) AS cat_id
+FROM bronze.crm_prd_info
 
---Check For Nulls or Duplicates in the Primary Key
---Expectation: No Result 
-SELECT * FROM silver.crm_cust_info
+SELECT prd_key, REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id
+FROM bronze.crm_prd_info
 
-SELECT *
-FROM silver.crm_cust_info
-WHERE cst_id = 29449;
+-- Second check that the extracted bronze.crm_prd_info.cat_id equals the existing bronze.erp_px_cat_g1v2
+-- Result: each row must match.
+-- Check the value notation.
+-- erp	   crm
+-- CO_RF & CO-RF
 
-SELECT cst_id, count(*)
-FROM silver.crm_cust_info
-GROUP BY cst_id
-HAVING COUNT(*) > 1 OR cst_id IS NULL;
+-- Use a dynamic length extraction.
+-- LEN()
+-- Returns the number of characters in a string.
 
+SELECT DISTINCT id FROM bronze.erp_px_cat_g1v2
+WHERE id = 'CO_RF'
+
+SELECT * FROM bronze.crm_sales_details
+
+SELECT sls_prd_key FROM bronze.crm_sales_details
+
+SELECT DISTINCT id 
+FROM bronze.erp_px_cat_g1v2 t1, bronze.crm_prd_info t2
+WHERE t1.ID = REPLACE(SUBSTRING(t2.prd_key,1,5), '-', '_')
+
+-- Filters out unmatched data after applying transformation.
+
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	REPLACE(SUBSTRING(prd_key,7,LEN(prd_key)), '-', '_') AS prd_key,
+	prd_nm,
+	prd_cost,
+	prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+WHERE REPLACE(SUBSTRING(prd_key,1,5), '-', '_') NOT IN 
+(SELECT DISTINCT id FROM bronze.erp_px_cat_g1v2)
+
+-- Without a where-clause there are many without a product cost.
+-- No results with the REPLACE command in the WHERE clause.
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	REPLACE(SUBSTRING(prd_key,7,LEN(prd_key)), '-', '_') AS prd_key,
+	prd_nm,
+	prd_cost,
+	prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+WHERE REPLACE(SUBSTRING(prd_key,7,LEN(prd_key)), '-', '_') NOT IN 
+(SELECT sls_prd_key FROM bronze.crm_sales_details)
+
+
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	REPLACE(SUBSTRING(prd_key,7,LEN(prd_key)), '-', '_') AS prd_key,
+	prd_nm,
+	prd_cost,
+	prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+--WHERE REPLACE(SUBSTRING(prd_key,7,LEN(prd_key)), '-', '_') IN
+--WHERE SUBSTRING(prd_key,7,LEN(prd_key)) IN 
+--(SELECT sls_prd_key FROM bronze.crm_sales_details)
+
+
+--Check for unwanted white spaces.
+--TRIM command
+--Result: no difference between the counts in the two queries.
+--All row of the table are selected
+SELECT
+	COUNT(prd_nm)
+FROM bronze.crm_prd_info
+
+--Only the row with no differences in white spaces are selected.
+SELECT
+	COUNT(prd_nm)
+FROM bronze.crm_prd_info
+WHERE prd_nm = TRIM(prd_nm)
+
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	TRIM(prd_nm)
+	prd_cost,
+	prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+--WHERE prd_nm = TRIM(prd_nm)
+
+
+-- Check for NULLs or Negative Numbers.
+-- Expectation: No Results
+SELECT
+	COUNT(prd_cost) AS product_cost
+FROM bronze.crm_prd_info;
+
+SELECT
+	COUNT(prd_cost) AS product_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost < 0;
+
+SELECT
+	COUNT(prd_cost) AS product_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost IS NULL;
+
+SELECT
+	COUNT(prd_cost) AS product_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost < 0 OR prd_cost IS NULL;
+
+SELECT prd_cost AS product_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost < 0 OR prd_cost IS NULL;
+
+-- ISNULL()
+-- Replaces NULL values with a specified replacement value.
+-- You can use COALESCE as well
+
+SELECT 
+ ISNULL(prd_cost,0) AS prd_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost < 0 OR prd_cost IS NULL;
+
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	TRIM(prd_nm),
+	ISNULL(prd_cost,0) AS prd_cost,
+	prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+
+
+-- Data Standardization & Consistency
+SELECT DISTINCT prd_line
+FROM bronze.crm_prd_info
+
+
+SELECT
+	prd_line
+	,CASE	WHEN UPPER(TRIM(prd_line)) = 'M' THEN 'Mountain' 
+			WHEN UPPER(TRIM(prd_line)) = 'R' THEN 'Road'
+			WHEN UPPER(TRIM(prd_line)) = 'S' THEN 'Other Sales'
+			WHEN UPPER(TRIM(prd_line)) = 'T' THEN 'Touring'
+	ELSE 'n/a'
+	END AS prd_line
+FROM bronze.crm_prd_info
+
+--Quick CASE WHEN ideal for simple value mapping
+
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	TRIM(prd_nm),
+	ISNULL(prd_cost,0) AS prd_cost,
+	CASE UPPER(TRIM(prd_line))
+		WHEN 'M' THEN 'Mountain' 
+		WHEN 'R' THEN 'Road'
+		WHEN 'S' THEN 'Other Sales'
+		WHEN 'T' THEN 'Touring'
+	ELSE 'n/a'
+	END AS prd_line,
+	prd_start_dt,
+	prd_end_dt
+FROM bronze.crm_prd_info
+
+-- End date must not be earlier than the start date
+
+-- Only select prd_start_dt
+SELECT
+prd_start_dt,
+prd_end_dt
+FROM bronze.crm_prd_info
+WHERE 
+	prd_start_dt IS NULL;
+
+-- Only select prd_end_dt
+SELECT
+prd_start_dt,
+prd_end_dt
+FROM bronze.crm_prd_info
+WHERE 
+	prd_end_dt IS NULL;
+
+-- Check for Invalid Date Orders
+SELECT
+prd_start_dt,
+prd_end_dt
+FROM bronze.crm_prd_info
+WHERE 
+	prd_end_dt < prd_start_dt;
+
+-- For complex transformations in SQL, narrow it down to a 
+-- specific example and brainstorm multiple solution approaches.
+
+
+-- Switch End Date and Start Date
+--End date must not be earlier than the start data.
+
+--#1 Issue 
+--Each Record must has a Start Date!
+--This does not work because there are overlaps between records.
+
+--#2 Solution 
+--Derive the End Date from the Start Date.
+--End Date = Start Date of the 'NEXT' Record - 1.
+--LEAD() command to use to read a record within an exinting read.
+--Access values from the next row wihtin a window.
+
+SELECT
+	prd_start_dt,
+	prd_end_dt,
+    LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS prd_end_dt_test
+FROM
+    bronze.crm_prd_info
+WHERE prd_key IN ('AC-HE-HL-U509-R', 'AC-HE-HL-U509');
+
+-- prd_end_dt < prd_start_dt;
+
+
+
+SELECT
+prd_key,
+prd_start_dt,
+prd_end_dt
+FROM bronze.crm_prd_info
+WHERE
+	prd_key LIKE '*HL*'; -- 'HL-U509-R';
+--	AND	prd_end_dt < prd_start_dt;
+
+
+--Complete code as so far 30 June 2025.
+--Make the Data Time fields only Date with CAST command.
+SELECT
+	prd_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	TRIM(prd_nm),
+	ISNULL(prd_cost,0) AS prd_cost,
+	CASE UPPER(TRIM(prd_line))
+		WHEN 'M' THEN 'Mountain' 
+		WHEN 'R' THEN 'Road'
+		WHEN 'S' THEN 'Other Sales'
+		WHEN 'T' THEN 'Touring'
+	ELSE 'n/a'
+	END AS prd_line,
+	CAST (prd_start_dt AS DATE) AS prd_start_dt,
+	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt
+FROM bronze.crm_prd_info
+
+-- Add the needed fiels to process the data with the statement.
+SELECT
+	prd_id,
+	cat_id,
+	prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	TRIM(prd_nm),
+	ISNULL(prd_cost,0) AS prd_cost,
+	CASE UPPER(TRIM(prd_line))
+		WHEN 'M' THEN 'Mountain' 
+		WHEN 'R' THEN 'Road'
+		WHEN 'S' THEN 'Other Sales'
+		WHEN 'T' THEN 'Touring'
+	ELSE 'n/a'
+	END AS prd_line,
+	CAST (prd_start_dt AS DATE) AS prd_start_dt,
+	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt
+FROM bronze.crm_prd_info
+-------------------------------------------------------------------------
+
+SELECT sls_prd_key FROM bronze.crm_sales_details
 --Use: ROW_NUMBER()
 --Assigns a unique number to each row in a result set, based on a defined order.
 
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
+FROM bronze.crm_cust_info
 WHERE cst_id = 29466;
 
 -- Also Without a WHERE Clause
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
+FROM bronze.crm_cust_info
 
 --With Only the InCorrect Row(s) Returned.
 SELECT
@@ -75,7 +334,7 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
+FROM bronze.crm_cust_info
 )t WHERE flag_last != 1;
 
 --With Only the Correct Row(s) Returned.
@@ -85,159 +344,5 @@ FROM (
 SELECT
 *,
 ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
+FROM bronze.crm_cust_info
 )t WHERE flag_last = 1; -- AND cst_id = 29466
-
---Check For Nulls or Duplicates in the Primary Key
---Expectation: No Result 
-SELECT * FROM silver.crm_cust_info
-
-SELECT *
-FROM silver.crm_cust_info
-WHERE cst_id = 29466;
-
-SELECT cst_id, count(*)
-FROM silver.crm_cust_info
-GROUP BY cst_id
-HAVING COUNT(*) > 1 OR cst_id IS NULL;
-
---Use: ROW_NUMBER()
---Assigns a unique number to each row in a result set, based on a defined order.
-
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-WHERE cst_id = 29466;
-
--- Also Without a WHERE Clause
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-
---With Only the InCorrect Row(s) Returned.
-SELECT
-*
-FROM (
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-)t WHERE flag_last != 1;
-
---With Only the Correct Row(s) Returned.
-SELECT
-*
-FROM (
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-)t WHERE flag_last = 1; -- AND cst_id = 29466
-
--- Quality Check
---Check for unwanted Spaces in String Values
---Expectation: No Result
-
---Without a Filter
---Check first Name
-SELECT cst_firstname FROM silver.crm_cust_info
-
---Remove the unwanted Spaces at Query
---TRIM command to remove the leading & ending spaces of a String value.
---If the original value is not equal to the same value after trimming, it means there are spaces!
-SELECT cst_firstname FROM silver.crm_cust_info
-WHERE cst_firstname != TRIM(cst_firstname)
-
---Sum the Values with Spaces.
-SELECT count(cst_firstname) FROM silver.crm_cust_info
-WHERE cst_firstname != TRIM(cst_firstname)
-
---Check last Name
-SELECT cst_lastname FROM silver.crm_cust_info
-WHERE cst_lastname != TRIM(cst_lastname)
-
---Check the Gender
-SELECT cst_gndr FROM silver.crm_cust_info
-WHERE cst_gndr!= TRIM(cst_gndr)
-
--- Quality Check
--- Check for unwanted spaces in string values and remove those spaces.
-SELECT
-   *  
-FROM (
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-)t WHERE flag_last = 1; -- AND cst_id = 29466;
-
-
---Clean All the Columns with a Value Space Error
---With Only the Correct Row(s) Returned.
-SELECT
-	cst_id
-     ,cst_key
-     ,TRIM(cst_firstname) AS cst_firstname
-     ,TRIM(cst_lastname) AS cst_lastname
-     ,cst_material_status
-     ,TRIM(cst_gndr) AS cst_gndr
-     ,cst_create_date
-FROM (
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-)t WHERE flag_last = 1; -- AND cst_id = 29466
-
--- Quality Check
--- Check the consistency of values in low cardinality columns.
-
--- Quality Check
--- Check the consistency of values in low cardinality columns.
-
--- Data Standardization & Consistency.
-
-SELECT DISTINCT cst_gndr
-FROM silver.crm_cust_info
-
--- Transform the data output
--- In our data warehouse, we aim to store clear and meaningful values rather than using abbreviated terms.
--- In our data warehouse we use the default value 'n/a' for missing values!
--- Apply UPPER() just in case mixed-case values appear later in your column.
--- Apply TRIM to remove unwanted empty spaces just in case spaces appear later in your column.
-
-
--- Write the insert statement to transfer the data to the silver layer.
-INSERT INTO silver.crm_cust_info
-(
-	cst_id,
-	cst_key,
-	cst_firstname,
-	cst_lastname,
-	cst_marital_status,
-	cst_gndr,
-	cst_create_date
-)
-SELECT
-	  cst_id
-     ,cst_key
-     ,TRIM(cst_firstname) AS cst_firstname
-     ,TRIM(cst_lastname) AS cst_lastname
-	 ,CASE WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
-           WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Maried'
-	  ELSE 'n/a'
-	  END cst_marital_status
-     ,CASE WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
-           WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
-	  ELSE 'n/a'
-	  END cst_gndr
-     ,cst_create_date
-FROM (
-SELECT
-*,
-ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
-FROM silver.crm_cust_info
-)t WHERE flag_last = 1; -- AND cst_id = 29466
-
