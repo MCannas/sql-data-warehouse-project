@@ -294,7 +294,7 @@ FROM bronze.crm_prd_info
 
 -- Add the needed fiels to process the data with the statement.
 -- Modify the Silver table with the add of the cat_id field 'silver.crm_prd_info'.
-
+-- Create new columns based on calculations or transformations of existing ones.
 INSERT INTO silver.crm_prd_info(
   prd_id,
   cat_id,
@@ -306,8 +306,8 @@ INSERT INTO silver.crm_prd_info(
   prd_end_dt)
 SELECT
 	prd_id,
-	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,
-	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,	-- Extract category ID
+	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,		 -- Extract product key
 	TRIM(prd_nm),
 	ISNULL(prd_cost,0) AS prd_cost,
 	CASE UPPER(TRIM(prd_line))
