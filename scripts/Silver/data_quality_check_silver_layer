@@ -292,9 +292,11 @@ SELECT
 	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt
 FROM bronze.crm_prd_info
 
--- Add the needed fiels to process the data with the statement.
--- Modify the Silver table with the add of the cat_id field 'silver.crm_prd_info'.
--- Create new columns based on calculations or transformations of existing ones.
+-- Derive Columns.
+-- 	Create new columns based on calculations or
+-- 	transformations of existing ones.
+-- Data Enrichment
+-- 	Add new, relevant data to enhance the dataset for analysis.
 INSERT INTO silver.crm_prd_info(
   prd_id,
   cat_id,
@@ -309,16 +311,16 @@ SELECT
 	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,	-- Extract category ID
 	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,		 -- Extract product key
 	TRIM(prd_nm),
-	ISNULL(prd_cost,0) AS prd_cost,
-	CASE UPPER(TRIM(prd_line))
+	ISNULL(prd_cost,0) AS prd_cost,		-- Replace none existing values by 0
+	CASE UPPER(TRIM(prd_line))		-- Data normalization
 		WHEN 'M' THEN 'Mountain' 
 		WHEN 'R' THEN 'Road'
 		WHEN 'S' THEN 'Other Sales'
 		WHEN 'T' THEN 'Touring'
-	ELSE 'n/a'
+	ELSE 'n/a'				 --Instead of none existing data n/a "not available"
 	END AS prd_line,
-	CAST (prd_start_dt AS DATE) AS prd_start_dt,
-	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt
+	CAST (prd_start_dt AS DATE) AS prd_start_dt,  -- Convert data type to another data type
+	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt -- Convert data type by enrichment
 FROM bronze.crm_prd_info;
 
 --Quality Check of the Loaded Data.
