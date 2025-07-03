@@ -1,3 +1,5 @@
+--Build Silver Layer
+--Clean & Load
 --Loading and Quality Check of the Silver Table.
 --Result: cleasing of the data before insert into the tables.
 
@@ -308,18 +310,18 @@ INSERT INTO silver.crm_prd_info(
   prd_end_dt)
 SELECT
 	prd_id,
-	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id,	-- Extract category ID
+	REPLACE(SUBSTRING(prd_key,1,5), '-', '_') AS cat_id, -- Extract category ID
 	SUBSTRING(prd_key,7,LEN(prd_key)) AS prd_key,		 -- Extract product key
 	TRIM(prd_nm),
-	ISNULL(prd_cost,0) AS prd_cost,		-- Replace none existing values by 0
-	CASE UPPER(TRIM(prd_line))		-- Data normalization
+	ISNULL(prd_cost,0) AS prd_cost, -- Replace none existing values by 0
+	CASE UPPER(TRIM(prd_line)) -- Data normalization
 		WHEN 'M' THEN 'Mountain' 
 		WHEN 'R' THEN 'Road'
 		WHEN 'S' THEN 'Other Sales'
 		WHEN 'T' THEN 'Touring'
-	ELSE 'n/a'				 --Instead of none existing data n/a "not available"
+	ELSE 'n/a' --Instead of none existing data n/a "not available"
 	END AS prd_line,
-	CAST (prd_start_dt AS DATE) AS prd_start_dt,  -- Convert data type to another data type
+	CAST (prd_start_dt AS DATE) AS prd_start_dt, -- Convert data type to another data type 
 	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt -- Convert data type by enrichment
 FROM bronze.crm_prd_info;
 
@@ -369,3 +371,133 @@ WHERE
 SELECT
 *
 FROM silver.crm_prd_info;
+
+
+
+--Table: crm_sales_details
+--Check for data.
+--Expectation: No Results.
+SELECT TOP (1000) [sls_ord_num]
+      ,[sls_prd_key]
+      ,[sls_cust_id]
+      ,[sls_order_dt]
+      ,[sls_ship_dt]
+      ,[sls_due_dt]
+      ,[sls_sales]
+      ,[sls_quantity]
+      ,[sls_price]
+      ,[dwh_create_date]
+  FROM [DataWarehouse].[silver].[crm_sales_details]
+
+--Bronze layer table
+
+--Check for unwanted spaces in the sls_ord_num field.
+--Expectation: No Results.
+SELECT TOP (1000) 
+	sls_ord_num
+   ,sls_prd_key
+   ,sls_cust_id
+   ,sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   ,sls_sales
+   ,sls_quantity
+   ,sls_price
+  FROM DataWarehouse.bronze.crm_sales_details
+  WHERE sls_ord_num != TRIM(sls_ord_num);
+
+--Relational field(s) from product key & customer ID.
+--Check for missing foreign key values in the silver layer!
+
+--Field: product key
+--Expectation: No Results.
+SELECT TOP (1000) 
+	sls_ord_num
+   ,sls_prd_key
+   ,sls_cust_id
+   ,sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   ,sls_sales
+   ,sls_quantity
+   ,sls_price
+  FROM DataWarehouse.bronze.crm_sales_details
+  WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info);
+
+--Field: customer ID
+--Expectation: No Results.
+SELECT  
+	sls_ord_num
+   ,sls_prd_key
+   ,sls_cust_id
+   ,sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   ,sls_sales
+   ,sls_quantity
+   ,sls_price
+  FROM DataWarehouse.bronze.crm_sales_details
+  WHERE sls_cust_id NOT IN (SELECT crm_cust_info.cst_id FROM silver.crm_cust_info);
+
+--Convert the integers to a date format.
+
+--Negative numbers or zeros can't be cast to a date.
+--NULLIF() : Returns NULL if to given values are equal; otherwise, it return the first expression.
+
+--Check that the 'Order Date' must always be earlier than the 'Shipping Date' or 'Due Date'.
+SELECT  
+	sls_ord_num
+   ,sls_prd_key
+   ,sls_cust_id
+   ,sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   ,sls_sales
+   ,sls_quantity
+   ,sls_price
+  FROM DataWarehouse.bronze.crm_sales_details
+  WHERE sls_order_dt > sls_ship_dt
+	 OR sls_order_dt > sls_due_dt ;
+
+--The fiels 'sls_order_dt' contains 0 values.
+SELECT  
+   sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   FROM DataWarehouse.bronze.crm_sales_details
+   WHERE sls_order_dt <= 0;
+
+--Convert the 0 values to NULL
+--In this scenario, the length of the date must be 8.
+--Check for outliers by validating the bounderies of the date range.
+--Check all date values with the same logic.
+SELECT  
+   NULLIF(sls_order_dt,0) sls_order_dt
+   ,sls_ship_dt
+   ,sls_due_dt
+   FROM DataWarehouse.bronze.crm_sales_details
+   WHERE sls_order_dt <= 0 --Convert only positive values
+		OR LEN(sls_order_dt) != 8 --Convert only with 8 length values
+		OR sls_order_dt > 25001231 --Do not convert higher out of bounderies values
+		OR sls_order_dt < 19000101; --Do not convert lower out of bounderies values
+
+--Apply the same integer conversion for all date fields.
+SELECT  
+	sls_ord_num
+   ,sls_prd_key
+   ,sls_cust_id
+   ,CASE WHEN sls_order_dt = 0 OR LEN(sls_order_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_order_dt AS VARCHAR) AS DATE)
+	END AS sls_order_dt
+   ,CASE WHEN sls_ship_dt = 0 OR LEN(sls_ship_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_ship_dt AS VARCHAR) AS DATE)
+	END AS sls_ship_dt
+   ,CASE WHEN sls_due_dt = 0 OR LEN(sls_due_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_due_dt AS VARCHAR) AS DATE)
+	END AS sls_due_dt
+   ,sls_sales
+   ,sls_quantity
+   ,sls_price
+FROM DataWarehouse.bronze.crm_sales_details;
+
+  
