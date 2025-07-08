@@ -498,6 +498,178 @@ SELECT
    ,sls_sales
    ,sls_quantity
    ,sls_price
-FROM DataWarehouse.bronze.crm_sales_details;
-
+FROM DataWarehouse.bronze.crm_sales_details --;
+WHERE sls_order_dt <= 0 --Convert only positive values
+	OR LEN(sls_order_dt) != 8 --Convert only with 8 length values
+	OR sls_order_dt > 25001231 --Do not convert higher out of bounderies values
+	OR sls_order_dt < 19000101; --Do not convert lower out of bounderies values
   
+--Check that the 'Order Date' must always be earlier than the 'Shipping Date' or 'Due Date'.
+--Field: sls_order_dt
+--Expectation: No Results.
+SELECT 
+*
+FROM bronze.crm_sales_details
+WHERE sls_order_dt > sls_ship_dt OR sls_order_dt > sls_due_dt;
+
+
+--Business Rules
+--Calculate: Sales = Quantity * Price
+--Negative, Zeros, Nulls are Not Allowed!
+--Check the Data Consistency in all Three Tables.
+
+SELECT DISTINCT 
+sls_sales
+,sls_quantity
+,sls_price
+FROM bronze.crm_sales_details
+WHERE sls_sales != sls_quantity * sls_price
+	OR sls_sales <= 0 OR sls_sales IS NULL
+	OR sls_quantity <= 0 OR sls_quantity IS NULL
+	OR sls_price <= 0 OR sls_price IS NULL
+ORDER BY sls_sales, sls_quantity, sls_price;
+
+--Ask the system expert which solutions is recommened.
+--#1 Solution
+--Data Issues will be fixed direct in source system.
+--#2 Solution
+--Data Issues has to be fixed in data warehouse.
+
+--Rules
+--Build the transformation based on the following three rules.
+--If Sales is negative, zero, or nul, derive it using Quantity and Price.
+--If Price is zero or null, calculate it using Sales and Quantity.
+--If PRice is negative, convert it to a positive value.
+
+--ABS()
+--Returns absolute value of a number.
+
+SELECT DISTINCT
+   CASE WHEN sls_sales <= 0
+			 OR sls_sales != sls_quantity * ABS(sls_price) 
+             OR sls_sales IS NULL
+	THEN   sls_quantity * ABS(sls_price) 
+	ELSE sls_sales
+	END AS sls_sales
+  ,CASE WHEN sls_price <= 0
+		 OR sls_price IS NULL
+	THEN sls_sales / NULLIF(sls_quantity,0)
+	ELSE sls_price
+	END AS sls_price
+  ,CASE WHEN sls_quantity <= 0
+		  OR sls_quantity IS NULL
+	THEN   sls_sales / ABS(sls_price)
+	ELSE sls_quantity
+	END AS sls_quantity
+FROM bronze.crm_sales_details
+WHERE sls_sales != sls_quantity * sls_price
+	OR sls_sales <= 0 OR sls_sales IS NULL
+	OR sls_quantity <= 0 OR sls_quantity IS NULL
+	OR sls_price <= 0 OR sls_price IS NULL
+ORDER BY sls_sales, sls_quantity, sls_price;
+
+--Modify the Table silver.crm_sales_details in the Silver Layer.
+--Change the datatypes from INT to DATE.
+--sls_order_dt DATE,
+--sls_ship_dt  DATE,
+--sls_due_dt   DATE,
+IF OBJECT_ID('silver.crm_sales_details', 'U') IS NOT NULL
+    DROP TABLE silver.crm_sales_details;
+GO
+
+CREATE TABLE silver.crm_sales_details (
+    sls_ord_num  NVARCHAR(50),
+    sls_prd_key  NVARCHAR(50),
+    sls_cust_id  INT,
+    sls_order_dt DATE,
+    sls_ship_dt  DATE,
+    sls_due_dt   DATE,
+    sls_sales    INT,
+    sls_quantity INT,
+    sls_price    INT,
+    dwh_create_date 	DATETIME2 DEFAULT GETDATE()
+);
+GO
+--Insert the Bronze Layer Data into the Silver Layer Tables.
+
+INSERT INTO silver.crm_sales_details(
+	sls_ord_num
+    ,sls_prd_key
+    ,sls_cust_id
+    ,sls_order_dt
+    ,sls_ship_dt
+    ,sls_due_dt
+    ,sls_sales
+    ,sls_quantity
+    ,sls_price)
+SELECT DISTINCT
+	sls_ord_num
+    ,sls_prd_key
+    ,sls_cust_id
+   ,CASE WHEN sls_order_dt = 0 OR LEN(sls_order_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_order_dt AS VARCHAR) AS DATE)
+	END AS sls_order_dt
+   ,CASE WHEN sls_ship_dt = 0 OR LEN(sls_ship_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_ship_dt AS VARCHAR) AS DATE)
+	END AS sls_ship_dt
+   ,CASE WHEN sls_due_dt = 0 OR LEN(sls_due_dt) != 8 THEN NULL
+		 ELSE CAST(CAST(sls_due_dt AS VARCHAR) AS DATE)
+	END AS sls_due_dt
+   ,CASE WHEN sls_sales <= 0
+			 OR sls_sales != sls_quantity * ABS(sls_price) 
+             OR sls_sales IS NULL
+	THEN   sls_quantity * ABS(sls_price) 
+	ELSE sls_sales
+	END AS sls_sales
+  ,CASE WHEN sls_price <= 0
+		 OR sls_price IS NULL
+	THEN sls_sales / NULLIF(sls_quantity,0)
+	ELSE sls_price
+	END AS sls_price
+  ,CASE WHEN sls_quantity <= 0
+		  OR sls_quantity IS NULL
+	THEN   sls_sales / ABS(sls_price)
+	ELSE sls_quantity
+	END AS sls_quantity
+FROM bronze.crm_sales_details;
+
+--The WHERE Condition is not needed when Loading the Data because CASE Statements are used.
+WHERE sls_order_dt <= 0 --Convert only positive values
+	OR LEN(sls_order_dt) != 8 --Convert only with 8 length values
+	OR sls_order_dt > 25001231 --Do not convert higher out of bounderies values
+	OR sls_order_dt < 19000101 --Do not convert lower out of bounderies values
+	OR sls_sales != sls_quantity * sls_price
+	OR sls_sales <= 0 OR sls_sales IS NULL
+	OR sls_quantity <= 0 OR sls_quantity IS NULL
+	OR sls_price <= 0 OR sls_price IS NULL
+ORDER BY sls_sales, sls_quantity, sls_price;
+
+--Quality Check of the Loaded Data in the Silver Table.
+
+--Check for order date is not before ship or due date.
+--Expectation: No Results.
+SELECT 
+*
+FROM silver.crm_sales_details
+WHERE sls_order_dt > sls_ship_dt OR sls_order_dt > sls_due_dt;
+
+--Check that all transformations are correct processed.
+--Expectation: No Results.
+
+SELECT DISTINCT 
+sls_sales
+,sls_quantity
+,sls_price
+FROM silver.crm_sales_details
+WHERE sls_sales != sls_quantity * sls_price
+	OR sls_sales <= 0 OR sls_sales IS NULL
+	OR sls_quantity <= 0 OR sls_quantity IS NULL
+	OR sls_price <= 0 OR sls_price IS NULL
+ORDER BY sls_sales, sls_quantity, sls_price;
+
+--Check that all rows are correct processed.
+--Expectation: All Rows.
+
+SELECT 
+*
+FROM silver.crm_sales_details;
