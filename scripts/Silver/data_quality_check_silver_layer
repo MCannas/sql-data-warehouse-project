@@ -760,3 +760,97 @@ SELECT
 	END AS gen
 FROM [DataWarehouse].[bronze].[erp_cust_az12]
 WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info);
+
+
+-----------------------------------------------------
+
+--Field: birth data (bdate).
+--Check for the birth date of very old customers.
+--Check for a customer with a birth date in the future
+
+SELECT DISTINCT
+   bdate
+FROM bronze.erp_cust_az12
+WHERE bdate < '1924-01-01'
+	OR bdate > GETDATE(); --SYSDATETIME();
+
+	-----------------------------------------------------
+
+--Field: birth data (bdate).
+--Check for the birth date of very old customers.
+--Check for a customer with a birth date in the future
+
+SELECT DISTINCT
+   bdate
+FROM bronze.erp_cust_az12
+WHERE bdate < '1924-01-01'
+	OR bdate > GETDATE(); --SYSDATETIME();
+
+--Field: Gender (gen).
+--Check for all available values.
+--Transform to two values 'Male' and 'Female'.
+
+SELECT DISTINCT
+	GEN
+FROM bronze.erp_cust_az12
+
+
+--Transform the cid, bdate and gen fields
+SELECT
+   CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END AS cid
+   ,CASE WHEN bdate > GETDATE() THEN NULL
+		 ELSE bdate
+	END AS bdata
+   ,CASE  
+		WHEN UPPER(TRIM(gen)) IN ('M','Male') THEN 'Male' 
+		WHEN UPPER(TRIM(gen)) IN ('F','Female') THEN 'Female'
+	ELSE 'n/a'
+	END AS gen
+FROM [DataWarehouse].[bronze].[erp_cust_az12];
+
+
+-- Insert the Transformed Field Values into the Silver Layer.
+
+INSERT INTO [DataWarehouse].[silver].[erp_cust_az12]
+(cid,bdate,gen)
+SELECT
+   CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END AS cid
+   ,CASE WHEN bdate > GETDATE() THEN NULL
+		 ELSE bdate
+	END AS bdata
+   ,CASE  
+		WHEN UPPER(TRIM(gen)) IN ('M','Male') THEN 'Male' 
+		WHEN UPPER(TRIM(gen)) IN ('F','Female') THEN 'Female'
+	ELSE 'n/a'
+	END AS gen
+FROM [DataWarehouse].[bronze].[erp_cust_az12];
+
+--Quality Check of the Silver Layer.
+
+--Check the Customer Identifier.
+--Result: No Data retrieved Without the prefix 'AW'.
+SELECT
+	CID
+FROM [DataWarehouse].[silver].[erp_cust_az12]
+WHERE CID Not LIKE 'AW%'
+
+
+--Check the birth date.
+--Result: no outliers in the future. So no data retrieved.
+SELECT DISTINCT
+   bdate
+FROM silver.erp_cust_az12
+WHERE bdate > GETDATE(); --SYSDATETIME();
+
+--Check the Gender.
+--Result: 3 values (Male, Female, n/a).
+
+SELECT DISTINCT
+	GEN
+FROM silver.erp_cust_az12;
+
+SELECT * FROM silver.erp_cust_az12;
