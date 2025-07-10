@@ -673,3 +673,90 @@ ORDER BY sls_sales, sls_quantity, sls_price;
 SELECT 
 *
 FROM silver.crm_sales_details;
+
+-----------------------------------------------------
+-----------------------------------------------------
+--Clean & Load Table erp_cust_az12
+
+SELECT TOP (1000) [CID]
+      ,[BDATE]
+      ,[GEN]
+  FROM [DataWarehouse].[bronze].[erp_cust_az12]
+
+
+  SELECT
+	CID
+   ,BDATE
+   ,GEN
+FROM [DataWarehouse].[bronze].[erp_cust_az12]
+
+SELECT
+	*
+FROM [DataWarehouse].[silver].[crm_cust_info]
+
+--Select only a part of the value string.
+--WHERE fiels LIKE '%.....%'
+SELECT
+	CID
+   ,BDATE
+   ,GEN
+FROM [DataWarehouse].[bronze].[erp_cust_az12]
+WHERE CID LIKE '%AW00011000%'
+
+--Substract the first 3 char's from the field CID
+--SELECT SUBSTRING(YourColumn, 4, LEN(YourColumn) - 3) AS StringWithoutFirstThreeChars
+
+SELECT
+   cid
+  ,CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END AS cid
+   ,BDATE
+   ,GEN
+   ,CASE UPPER(TRIM(gen))
+		WHEN 'M' THEN 'Male' 
+		WHEN 'F' THEN 'Female'
+--		WHEN ISNULL(gen,0) THEN 'n/a'
+	ELSE gen
+	END AS gen
+FROM [DataWarehouse].[bronze].[erp_cust_az12]
+
+--Test the result sets the customer info.
+
+--With matching data.
+--Result: now matched data.
+SELECT
+   cid
+  ,CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END AS cid
+   ,BDATE
+   ,GEN
+   ,CASE UPPER(TRIM(gen))
+		WHEN 'M' THEN 'Male' 
+		WHEN 'F' THEN 'Female'
+		WHEN NULL THEN 'n/a'
+	ELSE gen
+	END AS gen
+FROM [DataWarehouse].[bronze].[erp_cust_az12]
+WHERE CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END NOT IN (SELECT cst_key FROM silver.crm_cust_info);
+
+--With without matching data.
+--Result: all unmatched data.
+SELECT
+   cid
+  ,CASE WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid) - 3) 
+		ELSE cid
+   END AS cid
+   ,BDATE
+   ,GEN
+   ,CASE UPPER(TRIM(gen))
+		WHEN 'M' THEN 'Male' 
+		WHEN 'F' THEN 'Female'
+		WHEN NULL THEN 'n/a'
+	ELSE gen
+	END AS gen
+FROM [DataWarehouse].[bronze].[erp_cust_az12]
+WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info);
