@@ -854,3 +854,97 @@ SELECT DISTINCT
 FROM silver.erp_cust_az12;
 
 SELECT * FROM silver.erp_cust_az12;
+
+--------------------------------------------------------------
+--Retrieve the 'erp_loc_a101' table values.
+--Result: All Row in the Table in return.
+SELECT 
+	cid
+   ,cntry
+  FROM bronze.erp_loc_a101;
+
+--Check for missing or negative CID values.
+--Result: No retrieved rows. 
+SELECT DISTINCT
+	cid
+   ,cntry
+FROM bronze.erp_loc_a101
+WHERE cid IS NULL;
+
+--Check the foreign key 'cst_key' in the table 'bronze'.'crm_cust_info'.
+--Result: The field value has no '-' seperator.
+SELECT 
+	cst_key
+FROM bronze.crm_cust_info;
+
+--Remove the '-' values in the cid column.
+--REPLACE(cid, '-', '')
+SELECT 
+	cid
+	,REPLACE(cid, '-', '')
+   ,cntry
+FROM bronze.erp_loc_a101;
+
+--Remove the '-' values in the cid column and check the result.
+--Result: No Rows should be returned (2x). 
+SELECT 
+	REPLACE(cid, '-', '') AS cid
+   ,cntry
+FROM bronze.erp_loc_a101
+WHERE cid IN (SELECT 
+				cst_key
+			  FROM bronze.crm_cust_info);
+--Other statement.
+SELECT 
+	REPLACE(cid, '-', '') AS cid
+   ,cntry
+FROM bronze.erp_loc_a101
+WHERE REPLACE(cid, '-', '') NOT IN (SELECT 
+				cst_key
+			  FROM bronze.crm_cust_info);
+
+--Data Standardization & Consistency.
+--Field: country 'cntry'.
+--Result: Only one notation for each country.
+SELECT Distinct
+	cntry
+FROM bronze.erp_loc_a101;
+
+--Modify the non standard values and make them consistent.
+--Result: changed values in all columns
+SELECT Distinct
+	cntry AS old
+   ,CASE  
+		WHEN UPPER(TRIM(cntry)) IN ('DE') THEN 'Germany' 
+		WHEN UPPER(TRIM(cntry)) IN ('US','USA') THEN 'United States'
+		WHEN UPPER(TRIM(cntry)) IN ('') OR cntry IS NULL THEN 'n/a'
+	ELSE TRIM(cntry)
+	END AS cntry
+FROM bronze.erp_loc_a101;
+
+--Insert the modified field values in the siler layer.
+--Result: changed values in all columns are inserted.
+INSERT INTO silver.erp_loc_a101(cid,cntry)
+SELECT 
+	REPLACE(cid, '-', '') AS cid
+   ,CASE  
+		WHEN UPPER(TRIM(cntry)) IN ('DE') THEN 'Germany' 
+		WHEN UPPER(TRIM(cntry)) IN ('US','USA') THEN 'United States'
+		WHEN UPPER(TRIM(cntry)) IN ('') OR cntry IS NULL THEN 'n/a'
+	ELSE TRIM(cntry)
+	END AS cntry
+FROM bronze.erp_loc_a101;
+
+--Quality Check of the Silver Layer table after insertion.
+--Result: All Rows are Transfered & 'cid' field without '-' Seperator Plus 'create data'.
+
+SELECT [cid]
+      ,[cntry]
+      ,[dwh_create_date]
+  FROM [DataWarehouse].[silver].[erp_loc_a101]
+
+--Field: country 'cntry'.
+--Result: Only one notation for each country.
+SELECT Distinct
+	cntry
+FROM silver.erp_loc_a101;
