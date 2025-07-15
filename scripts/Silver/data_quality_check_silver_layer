@@ -948,3 +948,61 @@ SELECT [cid]
 SELECT Distinct
 	cntry
 FROM silver.erp_loc_a101;
+
+---------------------------------------
+
+--Check the values in the 'bronze.erp_px_cat_g1v2' table.
+--Result: Available.
+SELECT 
+	id
+	,cat
+	,subcat
+	,maintenance
+  FROM bronze.erp_px_cat_g1v2;
+
+--Check that the related values are available in the 'silver.crm_prd_info' table.
+--Result: All Rows are Retrieved.
+  SELECT 
+	id
+	,cat
+	,subcat
+	,maintenance
+FROM bronze.erp_px_cat_g1v2
+WHERE TRIM(id) IN (SELECT cat_id
+FROM silver.crm_prd_info);
+
+--Check for unwanted spaces in the field 'cat' , 'subcat' and 'maintenance'.
+--Result: No Rows Retrieved.
+SELECT
+	 cat
+	,subcat
+	,maintenance
+FROM bronze.erp_px_cat_g1v2
+WHERE  cat != TRIM(cat)
+	OR subcat != TRIM(subcat)
+	OR maintenance != TRIM(maintenance);
+
+--Data Standardization & Consistency.
+--Result: Only unique values.
+
+SELECT DISTINCT
+	TRIM(cat)
+FROM bronze.erp_px_cat_g1v2;
+
+SELECT DISTINCT
+	TRIM(subcat)
+FROM bronze.erp_px_cat_g1v2;
+
+SELECT DISTINCT
+	TRIM(maintenance)
+FROM bronze.erp_px_cat_g1v2;
+
+--Load the Data Into the Silver Layer Table.
+--Result: Full load.
+
+INSERT INTO silver.erp_px_cat_g1v2 (cat,subcat,maintenance)
+SELECT
+	 TRIM(cat)
+	,TRIM(subcat)
+	,TRIM(maintenance)
+FROM bronze.erp_px_cat_g1v2;
