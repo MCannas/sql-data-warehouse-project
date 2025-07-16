@@ -6,7 +6,7 @@ use master;
 USE DataWarehouse;
 --GO;
 
---
+-- 1
 
 TRUNCATE TABLE silver.crm_prd_info;
 
@@ -36,7 +36,7 @@ SELECT
 	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt -- Convert data type by enrichment
 FROM bronze.crm_prd_info;
 
---
+-- 2
 TRUNCATE TABLE silver.crm_sales_details;
 
 INSERT INTO silver.crm_sales_details(
@@ -80,7 +80,7 @@ SELECT DISTINCT
 	END AS sls_quantity
 FROM bronze.crm_sales_details;
 
---
+-- 3
 TRUNCATE TABLE silver.erp_cust_az12;
 
 INSERT INTO silver.erp_cust_az12
@@ -99,7 +99,7 @@ SELECT
 	END AS gen
 FROM bronze.erp_cust_az12;
 
---
+-- 4
 TRUNCATE TABLE silver.erp_loc_a101;
 
 INSERT INTO silver.erp_loc_a101(cid,cntry)
@@ -113,7 +113,7 @@ SELECT
 	END AS cntry
 FROM bronze.erp_loc_a101;
 
---
+-- 5
 
 --Load the Data Into the Silver Layer Table.
 --Result: Full load.
