@@ -1,4 +1,5 @@
 --Load all data into the Silver Tables.
+--Steps: Each Table Needs First to be Emptied with the TRUNCATE Command.
 --Result: Mass Data load.
 
 use master;
@@ -6,8 +7,43 @@ use master;
 USE DataWarehouse;
 --GO;
 
--- 1
 
+
+-- 1
+TRUNCATE TABLE silver.crm_cust_info;
+
+INSERT INTO silver.crm_cust_info
+(
+	cst_id,
+	cst_key,
+	cst_firstname,
+	cst_lastname,
+	cst_marital_status,
+	cst_gndr,
+	cst_create_date
+)
+SELECT
+	  cst_id
+     ,cst_key
+     ,TRIM(cst_firstname) AS cst_firstname
+     ,TRIM(cst_lastname) AS cst_lastname
+	 ,CASE WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
+           WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Maried'
+	  ELSE 'n/a'
+	  END cst_marital_status
+     ,CASE WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
+           WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
+	  ELSE 'n/a'
+	  END cst_gndr
+     ,cst_create_date
+FROM (
+SELECT
+*,
+ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_last
+FROM bronze.crm_cust_info
+)t WHERE flag_last = 1;
+
+--2
 TRUNCATE TABLE silver.crm_prd_info;
 
 INSERT INTO silver.crm_prd_info(
@@ -36,7 +72,7 @@ SELECT
 	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt -- Convert data type by enrichment
 FROM bronze.crm_prd_info;
 
--- 2
+-- 3
 TRUNCATE TABLE silver.crm_sales_details;
 
 INSERT INTO silver.crm_sales_details(
@@ -80,7 +116,7 @@ SELECT DISTINCT
 	END AS sls_quantity
 FROM bronze.crm_sales_details;
 
--- 3
+-- 4
 TRUNCATE TABLE silver.erp_cust_az12;
 
 INSERT INTO silver.erp_cust_az12
@@ -99,7 +135,7 @@ SELECT
 	END AS gen
 FROM bronze.erp_cust_az12;
 
--- 4
+-- 5
 TRUNCATE TABLE silver.erp_loc_a101;
 
 INSERT INTO silver.erp_loc_a101(cid,cntry)
@@ -113,7 +149,7 @@ SELECT
 	END AS cntry
 FROM bronze.erp_loc_a101;
 
--- 5
+-- 6
 
 --Load the Data Into the Silver Layer Table.
 --Result: Full load.
