@@ -9,6 +9,7 @@ USE DataWarehouse;
 --
 
 TRUNCATE TABLE silver.crm_prd_info;
+
 INSERT INTO silver.crm_prd_info(
   prd_id,
   cat_id,
@@ -36,6 +37,7 @@ SELECT
 FROM bronze.crm_prd_info;
 
 --
+TRUNCATE TABLE silver.crm_sales_details;
 
 INSERT INTO silver.crm_sales_details(
 	sls_ord_num
@@ -79,6 +81,7 @@ SELECT DISTINCT
 FROM bronze.crm_sales_details;
 
 --
+TRUNCATE TABLE silver.erp_cust_az12;
 
 INSERT INTO silver.erp_cust_az12
 (cid,bdate,gen)
@@ -97,6 +100,7 @@ SELECT
 FROM bronze.erp_cust_az12;
 
 --
+TRUNCATE TABLE silver.erp_loc_a101;
 
 INSERT INTO silver.erp_loc_a101(cid,cntry)
 SELECT 
@@ -110,5 +114,18 @@ SELECT
 FROM bronze.erp_loc_a101;
 
 --
+
+--Load the Data Into the Silver Layer Table.
+--Result: Full load.
+
+TRUNCATE TABLE silver.erp_px_cat_g1v2;
+
+INSERT INTO silver.erp_px_cat_g1v2 (id,cat,subcat,maintenance)
+SELECT
+	 TRIM(id)
+	,TRIM(cat)
+	,TRIM(subcat)
+	,TRIM(maintenance)
+FROM bronze.erp_px_cat_g1v2;
 
 
