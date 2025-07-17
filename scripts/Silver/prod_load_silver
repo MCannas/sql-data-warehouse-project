@@ -1,13 +1,22 @@
---Load all data into the Silver Tables.
---Steps: Each Table Needs First to be Emptied with the TRUNCATE Command.
+
+
+--Load all data into the Silver Tables with a Stored Procedure.
+--Steps 1: Each Table Needs First to be Emptied with the TRUNCATE Command.
+--Steps 1: Each Table needs te be Loaded with Data from the Bronze Layer.
+--Step 3: Run the EXEC Command to execute the Stored Procedure.
 --Result: Mass Data load.
 
-use master;
+--use master;
 --GO;
-USE DataWarehouse;
+--USE DataWarehouse;
 --GO;
 
+--Create the Stored Procedure:
+--Result: The procedure is created in the database.
 
+CREATE OR ALTER PROCEDURE silver.load_silver AS
+
+BEGIN
 
 -- 1
 TRUNCATE TABLE silver.crm_cust_info;
@@ -163,5 +172,8 @@ SELECT
 	,TRIM(subcat)
 	,TRIM(maintenance)
 FROM bronze.erp_px_cat_g1v2;
+END;
 
+--Execute the Stored Procedure.
 
+EXEC silver.load_silver;
