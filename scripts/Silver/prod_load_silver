@@ -18,9 +18,10 @@ CREATE OR ALTER PROCEDURE silver.load_silver AS
 
 BEGIN
 
--- 1
+Print '>> Trancating Table: silver.crm_cust_info';
 TRUNCATE TABLE silver.crm_cust_info;
 
+Print '>> Inserting Data Into Table: silver.crm_cust_info';
 INSERT INTO silver.crm_cust_info
 (
 	cst_id,
@@ -52,9 +53,10 @@ ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) as flag_la
 FROM bronze.crm_cust_info
 )t WHERE flag_last = 1;
 
---2
+Print '>> Trancating Table: silver.crm_prd_info';
 TRUNCATE TABLE silver.crm_prd_info;
 
+Print '>> Inserting Data Into Table: silver.crm_prd_info';
 INSERT INTO silver.crm_prd_info(
   prd_id,
   cat_id,
@@ -81,9 +83,10 @@ SELECT
 	CAST (LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1 AS DATE) AS prd_end_dt -- Convert data type by enrichment
 FROM bronze.crm_prd_info;
 
--- 3
+Print '>> Trancating Table: silver.crm_sales_details';
 TRUNCATE TABLE silver.crm_sales_details;
 
+Print '>> Inserting Data Into Table: silver.crm_sales_details';
 INSERT INTO silver.crm_sales_details(
 	sls_ord_num
     ,sls_prd_key
@@ -125,9 +128,10 @@ SELECT DISTINCT
 	END AS sls_quantity
 FROM bronze.crm_sales_details;
 
--- 4
+Print '>> Trancating Table: silver.erp_cust_az12';
 TRUNCATE TABLE silver.erp_cust_az12;
 
+Print '>> Inserting Data Into Table: silver.erp_cust_az12';
 INSERT INTO silver.erp_cust_az12
 (cid,bdate,gen)
 SELECT
@@ -144,9 +148,10 @@ SELECT
 	END AS gen
 FROM bronze.erp_cust_az12;
 
--- 5
+Print '>> Trancating Table: silver.erp_loc_a101';
 TRUNCATE TABLE silver.erp_loc_a101;
 
+Print '>> Inserting Data Into Table: silver.erp_loc_a101';
 INSERT INTO silver.erp_loc_a101(cid,cntry)
 SELECT 
 	REPLACE(cid, '-', '') AS cid
@@ -158,13 +163,10 @@ SELECT
 	END AS cntry
 FROM bronze.erp_loc_a101;
 
--- 6
-
---Load the Data Into the Silver Layer Table.
---Result: Full load.
-
+Print '>> Trancating Table: silver.erp_px_cat_g1v2';
 TRUNCATE TABLE silver.erp_px_cat_g1v2;
 
+Print '>> Inserting Data Into Table: silver.erp_px_cat_g1v2';
 INSERT INTO silver.erp_px_cat_g1v2 (id,cat,subcat,maintenance)
 SELECT
 	 TRIM(id)
@@ -173,6 +175,7 @@ SELECT
 	,TRIM(maintenance)
 FROM bronze.erp_px_cat_g1v2;
 END;
+
 
 --Execute the Stored Procedure.
 
