@@ -1,0 +1,94 @@
+Building GOLD LAYER
+-Analysing: Explore & Understand the Business Objects.
+-Coding: Data Integration 
+	- Build the Business Objects.
+	- Choose Type Dimention vs Facts).
+	- Rename to friendly names.
+Validating: Data Integration Checks.
+docs & Version: Documenting Version in GIT.
+
+RAW DATA --> DATA Modeling with a description of the relationship between the objects. 
+A Logical Data Model contains three steps, the Conceptual Model, 
+
+Continue 3:32:18
+Theory
+Star Schema vs. Snowflake Schema
+Star Schema: Simple & Easy with Big Dimensions.
+Snowflake Schema: More Complex with Large Datasets.
+
+Dimension: Descriptive information that give context to your data (Who? What? Where?).
+Fact: Quantitative information that represents events (How much? How many?).
+
+Explore the Business Objects.
+
+
+Draw the logical datamodel for the gold layer.
+Red: PRODUCT business Object.
+Green: CUSTOMER business Object.
+PURPLE: SALES business Object.
+
+Create Dimentions Customer
+Gols Layer:
+
+	Business-Ready data.
+Objective
+	Provide data to be consumed for reporting & Analytics.
+Object Type
+	Views.
+Load Method
+	None.
+Data Transformation
+	Data Integration.
+	Data Aggregation.
+	Business Logic & Rules.
+Data Modeling
+	Start Schema.
+	Aggregated Objects.
+	Flat Tables.
+Target Audience
+	Data Analysts.
+	Business Users.
+SQL-Script:
+
+------------------------------------------------------
+SELECT 
+	   ci.cst_id
+      ,ci.cst_key
+      ,ci.cst_firstname
+      ,ci.cst_lastname
+      ,ci.cst_marital_status
+      ,ci.cst_gndr
+      ,ci.cst_create_date
+	  ,ca.bdate
+	  ,ca.gen
+	  ,la.cntry
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid
+-------------------------------------------------------------
+
+TIP. After Joining table, check if any duplicates were introduced by the join logic.
+
+SELECT cst_id, COUNT(*) FROM
+(
+SELECT 
+	   ci.cst_id
+      ,ci.cst_key
+      ,ci.cst_firstname
+      ,ci.cst_lastname
+      ,ci.cst_marital_status
+      ,ci.cst_gndr
+      ,ci.cst_create_date
+	  ,ca.bdate
+	  ,ca.gen
+	  ,la.cntry
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid
+  )  t GROUP BY cst_id HAVING COUNT(*) > 1;
+
+---------------------------------------------------------------------
