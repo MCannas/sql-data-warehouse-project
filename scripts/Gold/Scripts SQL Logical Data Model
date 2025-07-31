@@ -92,3 +92,111 @@ SELECT
   )  t GROUP BY cst_id HAVING COUNT(*) > 1;
 
 ---------------------------------------------------------------------
+--Create Dimentions Customer
+--TIP. After Joining table, check if any duplicates were introduced by the join logic.
+
+SELECT cst_id, COUNT(*) FROM
+(
+SELECT 
+	   ci.cst_id
+      ,ci.cst_key
+      ,ci.cst_firstname
+      ,ci.cst_lastname
+      ,ci.cst_marital_status
+      ,ci.cst_gndr
+      ,ci.cst_create_date
+	  ,ca.bdate
+	  ,ca.gen
+	  ,la.cntry
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid
+  )  t GROUP BY cst_id HAVING COUNT(*) > 1;
+
+--Result without a CASE-statement to Filter Integration Issues.
+  SELECT 
+	   ci.cst_id
+      ,ci.cst_key
+      ,ci.cst_firstname
+      ,ci.cst_lastname
+      ,ci.cst_marital_status
+      ,ci.cst_gndr
+      ,ci.cst_create_date
+	  ,ca.bdate
+	  ,ca.gen
+	  ,la.cntry
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid;
+
+--Integration issue between double fields from the tables.
+--NULLs often come from joined tables!
+--NULL will appear if SQL finds no match.
+--Question. Which source is the master for these values?
+--Answer. The Master Source of Customer is CRM!
+SELECT DISTINCT
+--ci.cst_key,ca.cid,
+	   ci.cst_gndr
+      ,ca.gen
+	  ,CASE WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr --CRM is the Master for gender Info
+			ELSE COALESCE(ca.gen, 'n/a')
+	   END AS new_gen
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid
+  ORDER BY 1, 2;
+
+--Result with a CASE-statement to Filter Integration Issues.
+  SELECT 
+	   ci.cst_id
+      ,ci.cst_key
+      ,ci.cst_firstname
+      ,ci.cst_lastname
+      ,ci.cst_marital_status
+      ,CASE WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr --CRM is the Master for gender Info
+			ELSE COALESCE(ca.gen, 'n/a')
+	   END AS new_gen
+      ,ci.cst_create_date
+	  ,ca.bdate
+	  ,la.cntry
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid;
+
+--ABC Rename columns to friendly, meaningfull names.
+--General Principles
+--.Naming Conventions: Use snake_case, with lowercase letters and underscores(_) to separate words.
+--.Language: Use English for all names.
+--.Avoid Reserved Words: Do not use SQL reserved words as object names.
+--Sort the columns into logical groups to improve readability
+  SELECT 
+	   ci.cst_id AS customer_id
+      ,ci.cst_key AS customer_number
+      ,ci.cst_firstname AS first_name
+      ,ci.cst_lastname AS last_name
+	  ,la.cntry AS country
+      ,ci.cst_marital_status AS marial_status
+      ,CASE WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr --CRM is the Master for gender Info
+			ELSE COALESCE(ca.gen, 'n/a')
+	   END AS gender
+	  ,ca.bdate AS birth_date
+      ,ci.cst_create_date AS create_date
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid;
+
+--Dimention vs Fact???
+
+--Surrogate Key
+--System-generated unique identifiers
+
