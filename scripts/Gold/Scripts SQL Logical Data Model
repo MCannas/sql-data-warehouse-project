@@ -197,6 +197,84 @@ SELECT DISTINCT
 
 --Dimention vs Fact???
 
---Surrogate Key
---System-generated unique identifiers
+--Surrogate Key.
+--System-generated unique identifiers.
+--DDL-based generation.
+--Query-based using Windows function (Row_Number).
+--Command: ROW_NUMBER() OVER (ORDER BY 'column_name') AS customer_key
+
+SELECT
+	   ROW_NUMBER() OVER (ORDER BY cst_id) AS customer_key
+	  ,ci.cst_id AS customer_id
+      ,ci.cst_key AS customer_number
+      ,ci.cst_firstname AS first_name
+      ,ci.cst_lastname AS last_name
+	  ,la.cntry AS country
+      ,ci.cst_marital_status AS marial_status
+      ,CASE WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr --CRM is the Master for gender Info
+			ELSE COALESCE(ca.gen, 'n/a')
+	   END AS gender
+	  ,ca.bdate AS birth_date
+      ,ci.cst_create_date AS create_date
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid;
+
+--Create the Customers Object (View) as non persistent.
+--CREATE VIEW 'object_name'.
+--Note: The CREATE VIEW ''object' needs a separate script to execute!
+
+--use master;
+--GO;
+--USE DataWarehouse;
+--GO;
+
+CREATE VIEW datawarehouse.gold.dim_customers AS
+SELECT ROW_NUMBER() OVER (ORDER BY cst_id) AS customer_key
+	  ,ci.cst_id AS customer_id
+      ,ci.cst_key AS customer_number
+      ,ci.cst_firstname AS first_name
+      ,ci.cst_lastname AS last_name
+	  ,la.cntry AS country
+      ,ci.cst_marital_status AS marial_status
+      ,CASE WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr --CRM is the Master for gender Info
+			ELSE COALESCE(ca.gen, 'n/a')
+	   END AS gender
+	  ,ca.bdate AS birth_date
+      ,ci.cst_create_date AS create_date
+  FROM DataWarehouse.silver.crm_cust_info ci
+  LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+  ON ci.cst_key = ca.cid
+  LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+  ON ci.cst_key = la.cid;
+
+--Code Review by Google Gemini.
+
+CREATE VIEW datawarehouse.gold.dim_customers AS
+SELECT
+    ROW_NUMBER() OVER (ORDER BY ci.cst_id) AS customer_key
+  , ci.cst_id AS customer_id
+  , ci.cst_key AS customer_number
+  , ci.cst_firstname AS first_name
+  , ci.cst_lastname AS last_name
+  , la.cntry AS country
+  , ci.cst_marital_status AS marital_status -- Corrected typo
+  , CASE
+        WHEN ci.cst_gndr IS NOT NULL AND ci.cst_gndr != 'n/a' THEN ci.cst_gndr -- Handles 'n/a' and NULL from CRM
+        WHEN ca.gen IS NOT NULL AND ca.gen != 'n/a' THEN ca.gen -- Handles 'n/a' and NULL from ERP
+        ELSE 'n/a'
+    END AS gender
+  , ca.bdate AS birth_date
+  , ci.cst_create_date AS create_date
+FROM DataWarehouse.silver.crm_cust_info ci
+LEFT JOIN DataWarehouse.silver.erp_cust_az12 ca
+    ON ci.cst_key = ca.cid
+LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
+    ON ci.cst_key = la.cid;
+
+--Quality Check of the Gold Table.
+SELECT * FROM gold.dim_customers;
+SELECT DISTINCT gender FROM gold.dim_customers;
 
