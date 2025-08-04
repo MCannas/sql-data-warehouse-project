@@ -278,3 +278,63 @@ LEFT JOIN DataWarehouse.silver.erp_loc_a101 la
 SELECT * FROM gold.dim_customers;
 SELECT DISTINCT gender FROM gold.dim_customers;
 
+--=================================================
+--Standard 'silver' Layer 'product' Tables.
+--Create a View.
+
+SELECT prd_id
+      ,cat_id
+      ,prd_key
+      ,prd_nm
+      ,prd_cost
+      ,prd_line
+      ,prd_start_dt
+      ,prd_end_dt
+      ,dwh_create_date
+  FROM silver.crm_prd_info;
+
+SELECT id
+      ,cat
+      ,subcat
+      ,maintenance
+      ,dwh_create_date
+  FROM silver.erp_px_cat_g1v2;
+
+--Join the Tables.
+SELECT DISTINCT
+	   prd.prd_id
+      ,prd.cat_id
+      ,prd.prd_key
+      ,prd.prd_nm
+      ,prd.prd_cost
+      ,prd.prd_line
+      ,prd.prd_start_dt
+      ,prd.prd_end_dt
+	  ,cat.cat
+      ,cat.subcat
+      ,cat.maintenance
+  FROM silver.crm_prd_info as prd
+  LEFT JOIN
+    silver.erp_px_cat_g1v2 cat ON prd.cat_id = cat.id;
+
+--Create the view.
+--Always in a seperate batch file!
+
+CREATE VIEW gold.dim_product
+AS
+SELECT DISTINCT
+	   prd.prd_id
+      ,prd.cat_id
+      ,prd.prd_key
+      ,prd.prd_nm
+      ,prd.prd_cost
+      ,prd.prd_line
+      ,prd.prd_start_dt
+      ,prd.prd_end_dt
+	  ,cat.cat
+      ,cat.subcat
+      ,cat.maintenance
+  FROM silver.crm_prd_info as prd
+  LEFT JOIN
+    silver.erp_px_cat_g1v2 cat ON prd.cat_id = cat.id;
+
