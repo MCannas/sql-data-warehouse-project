@@ -466,4 +466,6 @@ ROW_NUMBER() OVER (ORDER BY pn.prd_start_dt, pn.prd_key) AS product_key
     silver.erp_px_cat_g1v2 pc ON pn.cat_id = pc.id
   WHERE pn.prd_end_dt IS NULL; -- Filter out all historical data.
 
+--Check the result from gold.dim_products object.
+SELECT * FROM gold.dim_products;
 
