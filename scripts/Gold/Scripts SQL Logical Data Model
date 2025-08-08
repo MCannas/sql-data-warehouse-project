@@ -539,3 +539,6 @@ SELECT
   ON sd.sls_prd_key = pr.product_number
   LEFT JOIN gold.dim_customers cu
   ON sd.sls_cust_id = cu.customer_id;
+
+--Check the result from gold.fact_sales object.
+SELECT * FROM gold.fact_sales;
