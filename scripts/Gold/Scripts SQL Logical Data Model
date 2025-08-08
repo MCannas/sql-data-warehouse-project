@@ -469,3 +469,32 @@ ROW_NUMBER() OVER (ORDER BY pn.prd_start_dt, pn.prd_key) AS product_key
 --Check the result from gold.dim_products object.
 SELECT * FROM gold.dim_products;
 
+--==================================================
+
+--Create Fact Sales
+--Create Fact Sales
+
+--Keys & Dates & Measues are needed for a fact table.
+--Build the starschema or cube with use of the surrogate keys.
+
+--Building Fact.
+--Use the dimention's surrogate keys instead of IDs
+--to easily connect facts with dimensions.
+--Original IDs are 'sls_prd_key' & 'sls_cust_id'.
+ --Data LOOKUP to join tables to retrieve a particular value.
+
+SELECT sd.sls_ord_num
+      ,pr.product_number
+--      ,cu.customer_number
+      ,sd.sls_order_dt
+      ,sd.sls_ship_dt
+      ,sd.sls_due_dt
+      ,sd.sls_sales
+      ,sd.sls_quantity
+      ,sd.sls_price
+      ,sd.dwh_create_date
+  FROM silver.crm_sales_details sd
+  LEFT JOIN gold.dim_products pr
+  ON sd.sls_prd_key = pr.product_number
+  LEFT JOIN gold.dim_customers cu
+  ON sd.sls_cust_id = cu.customer_id;
