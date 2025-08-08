@@ -545,10 +545,25 @@ SELECT * FROM gold.fact_sales;
 
 --Fact Check
 --Check i all dimenion tables can successfully join to the fact table.
---RESULT: NO Rows Retrieved, Everything Matches.
 
+--Foreign Key Integrtion (Dimetions).
+
+--Customer Dimention.
+--RESULT: No Rows Retrieved.
 SELECT *
 FROM gold.fact_sales f
 LEFT JOIN gold.dim_customers c
 ON c.customer_key = f.customer_key
 WHERE c.customer_key IS NULL; 
+
+--Product Dimention.
+--RESULT: No Rows Retrieved.
+
+SELECT *
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_customers c
+ON c.customer_key = f.customer_key
+LEFT JOIN gold.dim_products p
+ON p.product_key = f.product_key
+WHERE p.product_key IS NULL; 
+
