@@ -542,3 +542,13 @@ SELECT
 
 --Check the result from gold.fact_sales object.
 SELECT * FROM gold.fact_sales;
+
+--Fact Check
+--Check i all dimenion tables can successfully join to the fact table.
+--RESULT: NO Rows Retrieved, Everything Matches.
+
+SELECT *
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_customers c
+ON c.customer_key = f.customer_key
+WHERE c.customer_key IS NULL; 
