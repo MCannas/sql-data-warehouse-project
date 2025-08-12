@@ -567,3 +567,11 @@ LEFT JOIN gold.dim_products p
 ON p.product_key = f.product_key
 WHERE p.product_key IS NULL; 
 
+--Documentation.
+--Data Mart (Star Schema)
+--Draw Customers and Products tables with all Columns.
+--In a star schema, the relationship between fact and dimensions is 1-to-many (1:N).
+--Many (Optional).
+--1. Customers who haven't placed any orders yet.
+--2. Customers who have placed only one order.
+--3. Customers who have placed only multiple orders.
