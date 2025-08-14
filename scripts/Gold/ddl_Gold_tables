@@ -1,0 +1,112 @@
+/*
+===============================================================================
+DDL Script: Create Gold Tables
+===============================================================================
+Script Purpose:
+    This script creates tables for the Gold layer in the data warehouse,
+    derived from the provided view definitions. The tables represent the
+    final dimension and fact tables (Star Schema) for analytics and reporting.
+
+Usage:
+    - These tables should be populated using an ETL or ELT process
+      that mirrors the logic in the original views.
+===============================================================================
+*/
+
+-- =============================================================================
+-- Drop Table: gold.fact_sales
+-- This must be dropped first due to foreign key dependencies.
+-- =============================================================================
+use master;
+USE DataWarehouse;
+
+
+/*
+===============================================================================
+DDL Script: Create Gold Tables
+===============================================================================
+Script Purpose:
+    This script creates tables for the Gold layer in the data warehouse,
+    derived from the provided view definitions. The tables represent the
+    final dimension and fact tables (Star Schema) for analytics and reporting.
+
+Usage:
+    - These tables should be populated using an ETL or ELT process
+      that mirrors the logic in the original views.
+===============================================================================
+*/
+
+-- =============================================================================
+-- Drop Table: gold.Ps_fact_sales
+-- This must be dropped first due to foreign key dependencies.
+-- =============================================================================
+IF OBJECT_ID('gold.Ps_fact_sales', 'U') IS NOT NULL
+    DROP TABLE gold.Ps_fact_sales;
+GO
+
+-- =============================================================================
+-- Drop Dimension: gold.Ps_dim_products
+-- =============================================================================
+IF OBJECT_ID('gold.Ps_dim_products', 'U') IS NOT NULL
+    DROP TABLE gold.Ps_dim_products;
+GO
+
+-- =============================================================================
+-- Drop Dimension: gold.Ps_dim_customers
+-- =============================================================================
+IF OBJECT_ID('gold.Ps_dim_customers', 'U') IS NOT NULL
+    DROP TABLE gold.Ps_dim_customers;
+GO
+
+
+-- =============================================================================
+-- Create Dimension: gold.Ps_dim_customers
+-- =============================================================================
+CREATE TABLE gold.Ps_dim_customers (
+    customer_key        INT IDENTITY(1,1) PRIMARY KEY, -- Surrogate key
+    customer_id         NVARCHAR(50),                  -- Business key from source
+    customer_number     NVARCHAR(50),
+    first_name          NVARCHAR(100),
+    last_name           NVARCHAR(100),
+    country             NVARCHAR(50),
+    marital_status      NVARCHAR(20),
+    gender              NVARCHAR(10),
+    birthdate           DATE,
+    create_date         DATETIME2
+);
+GO
+
+-- =============================================================================
+-- Create Dimension: gold.Ps_dim_products
+-- =============================================================================
+CREATE TABLE gold.Ps_dim_products (
+    product_key         INT IDENTITY(1,1) PRIMARY KEY, -- Surrogate key
+    product_id          NVARCHAR(50),                  -- Business key from source
+    product_number      NVARCHAR(50),
+    product_name        NVARCHAR(255),
+    category_id         INT,
+    category            NVARCHAR(50),
+    subcategory         NVARCHAR(50),
+    maintenance         NVARCHAR(50),
+    cost                DECIMAL(18, 2),
+    product_line        NVARCHAR(50),
+    start_date          DATE
+);
+GO
+
+-- =============================================================================
+-- Create Fact Table: gold.Ps_fact_sales
+-- =============================================================================
+CREATE TABLE gold.Ps_fact_sales (
+    order_number        NVARCHAR(50),
+    product_key         INT,
+    customer_key        INT,
+    order_date          DATE,
+    shipping_date       DATE,
+    due_date            DATE,
+    sales_amount        DECIMAL(18, 2),
+    quantity            INT,
+    price               DECIMAL(18, 2)
+);
+GO
+
